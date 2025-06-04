@@ -1,0 +1,114 @@
+---
+title: "Airline Delay Data February 2025"
+output:
+  html_document:
+    df_print: paged
+date: "2025-06-04"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+```
+
+## Import Data Sets
+
+```{r}
+AL.Data <- na.omit(read.csv("~/Airline Datasets/T_ONTIME_MARKETING.csv")) #Airline Data from Bureau of Transportation Statistics
+Airport.Lookup <- read.csv("~/Airline Datasets/L_AIRPORT_ID.csv") #Keys to identify airports
+Delay.Lookup <- read.csv("~/Airline Datasets/L_ONTIME_DELAY_GROUPS.csv") #Keys to identify delay category
+
+colnames(Delay.Lookup)[1] <- "DEP_DELAY_GROUP"
+colnames(Delay.Lookup)[2] <- "DELAY_DESC"
+colnames(Airport.Lookup)[1] <- "ORIGIN_AIRPORT_ID"
+colnames(Airport.Lookup)[2] <- "AIRPORT_NAME"
+
+
+AL.Data <- merge(x = AL.Data, y = Delay.Lookup, by = "DEP_DELAY_GROUP", all.x = TRUE)
+AL.Data <- merge(x = AL.Data, y = Airport.Lookup, by = "ORIGIN_AIRPORT_ID", all.x = TRUE)
+
+```
+
+##Distribution of delayed minutes for all data
+
+```{r}
+hist(AL.Data$DEP_DELAY, breaks = 1000, , xlim = range(-25,100), 
+     main = "Delayed Minutes Distribution",
+     xlab = "Departure Delay (Min)")
+
+```
+##Summary statistics for all data
+
+```{r}
+mean(AL.Data$DEP_DELAY) 
+sd(AL.Data$DEP_DELAY)
+median(AL.Data$DEP_DELAY)
+```
+##Proportion of flight delayed for all data
+
+```{r}
+mean(AL.Data$DEP_DELAY > 0)
+```
+##Proportion of delays in each delay group
+
+```{r}
+prop.table(table(AL.Data$DELAY_DESC))
+```
+##Mean delay by airline
+
+```{r}
+aggregate(AL.Data$DEP_DELAY ~ AL.Data$MKT_CARRIER, FUN = mean)
+```
+
+#Mean delay by airport
+
+```{r}
+#Generates table of mean delay minutes by airport
+delay.airport <- aggregate(AL.Data$DEP_DELAY ~ AL.Data$AIRPORT_NAME, FUN = mean)
+delay.airport <- delay.airport[order(delay.airport$`AL.Data$DEP_DELAY`),]
+colnames(delay.airport)[1] <- "Airport"
+colnames(delay.airport)[2] <- "Mean Delay Minutes"
+delay.airport
+
+```
+
+#Distribution of mean delay minutes for all airports in data
+
+```{r}
+hist(delay.airport$`Mean Delay Minutes`, xlab = "Mean Delay Minutes", main = "Airport Mean Delay Minutes")
+
+mean(delay.airport$`Mean Delay Minutes`)
+sd(delay.airport$`Mean Delay Minutes`)
+median(delay.airport$`Mean Delay Minutes`)
+
+```
+
+
+#Analysis of MSP Airport (Minneapolis St. Paul International)
+
+```{r}
+MSP <- filter(AL.Data, AIRPORT_NAME == "Minneapolis, MN: Minneapolis-St Paul International")
+
+hist(MSP$DEP_DELAY, breaks = 500, 
+     xlab = "Delayed Minutes",
+     main = "Distribution of Delayed Minutes at MSP",
+     xlim = c(-20,50))
+
+```
+
+```{r}
+hist(MSP$CRS_DEP_TIME, xlab = "Departure Time", main = "Distribution of Departure Times at MSP")
+```
+
+```{r}
+#Create aggregate table to show mean delay minutes by carrier
+MSP.Carriers <- aggregate(MSP$DEP_DELAY ~ MSP$MKT_CARRIER, FUN = mean)
+colnames(MSP.Carriers)[1] <- "Carrier Code"
+colnames(MSP.Carriers)[2] <- "Mean Delay Minutes"
+MSP.Carriers
+```
